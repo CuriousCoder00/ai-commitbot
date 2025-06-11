@@ -8,13 +8,13 @@
     "name": "kjxcodez"
   },
   "license": "MIT",
-  "homepage": "https://github.com/your-username/ai-auto-commit",
+  "homepage": "https://github.com/CuriousCoder00/ai-commitbot",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/ai-auto-commit.git"
+    "url": "https://github.com/CuriousCoder00/ai-commitbot.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/ai-auto-commit/issues"
+    "url": "https://github.com/CuriousCoder00/ai-commitbot.git/issues"
   },
   "icon": "icon.png",
   "engines": {
