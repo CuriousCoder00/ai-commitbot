@@ -1,0 +1,126 @@
+{
+  "name": "ai-auto-commit",
+  "displayName": "AI Auto Commit",
+  "description": "Generate intelligent commit messages using Gemini AI",
+  "version": "1.0.1",
+  "publisher": "your-publisher-name",
+  "author": {
+    "name": "kjxcodez"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/your-username/ai-auto-commit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/ai-auto-commit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/ai-auto-commit/issues"
+  },
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "SCM Providers"
+  ],
+  "keywords": [
+    "git",
+    "commit",
+    "ai",
+    "gemini",
+    "automation"
+  ],
+  "activationEvents": [
+    "onCommand:aiAutoCommit.generateCommit"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiAutoCommit.generateCommit",
+        "title": "🤖 Generate AI Commit",
+        "category": "AI Auto Commit"
+      },
+      {
+        "command": "aiAutoCommit.configureApiKey",
+        "title": "Configure Gemini API Key",
+        "category": "AI Auto Commit"
+      }
+    ],
+    "configuration": {
+      "title": "AI Auto Commit",
+      "properties": {
+        "aiAutoCommit.geminiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Gemini AI API key"
+        },
+        "aiAutoCommit.commitStyle": {
+          "type": "string",
+          "enum": ["conventional", "descriptive", "concise"],
+          "default": "conventional",
+          "description": "Commit message style preference"
+        },
+        "aiAutoCommit.maxDiffSize": {
+          "type": "number",
+          "default": 5000,
+          "description": "Maximum diff size to send to AI (characters)"
+        },
+        "aiAutoCommit.autoCommit": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically commit after generating message (without confirmation)"
+        }
+      }
+    },
+    "menus": {
+      "scm/title": [
+        {
+          "command": "aiAutoCommit.generateCommit",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "aiAutoCommit.generateCommit",
+          "when": "scmProvider == git"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "18.x",
+    "@types/mocha": "^10.0.1",
+    "@types/glob": "^8.1.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "eslint": "^8.26.0",
+    "esbuild": "^0.19.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.2.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.2.0",
+    "@vscode/test-electron": "^2.3.4"
+  },
+  "dependencies": {
+    "simple-git": "^3.19.1",
+    "@google/generative-ai": "^0.2.1"
+  }
+}
