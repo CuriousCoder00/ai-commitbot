@@ -3,7 +3,7 @@
   "displayName": "AI Auto Commit",
   "description": "Generate intelligent commit messages using Gemini AI",
   "version": "1.0.1",
-  "publisher": "your-publisher-name",
+  "publisher": "kjxcodez",
   "author": {
     "name": "kjxcodez"
   },
