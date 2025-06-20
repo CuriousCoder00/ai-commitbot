@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as vscode from 'vscode';
+import { promptsService, CommitStyle } from './prompts';
 
 export class GeminiService {
     private genAI: GoogleGenerativeAI | null = null;
@@ -18,24 +19,32 @@ export class GeminiService {
             }
 
             this.initializeAI(apiKey);
-            const model = this.genAI!.getGenerativeModel({ model: 'gemini-2.0-flash' });
+            const model = this.genAI!.getGenerativeModel({ 
+                model: 'gemini-2.0-flash',
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 200, // Increased for descriptive commits
+                }
+            });
 
-            const commitStyle = config.get<string>('commitStyle', 'conventional');
+            const commitStyle = config.get<string>('commitStyle', 'conventional') as CommitStyle;
             const maxDiffSize = config.get<number>('maxDiffSize', 5000);
+            const customInstructions = config.get<string>('customInstructions', '');
 
             // Truncate diff if too large
             const truncatedDiff = diff.length > maxDiffSize 
                 ? diff.substring(0, maxDiffSize) + '\n... (truncated)'
                 : diff;
 
-            const prompt = this.buildPrompt(truncatedDiff, commitStyle);
+            // Use the prompts service to build the complete prompt
+            const prompt = promptsService.buildPrompt(truncatedDiff, commitStyle, customInstructions);
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const commitMessage = response.text().trim();
 
-            // Clean up the response (remove quotes, extra formatting)
-            return this.cleanCommitMessage(commitMessage);
+            // Clean up the response
+            return this.cleanCommitMessage(commitMessage, commitStyle);
 
         } catch (error: any) {
             console.error('Gemini API error:', error);
@@ -53,83 +62,77 @@ export class GeminiService {
         }
     }
 
-    private buildPrompt(diff: string, commitStyle: string): string {
-        const basePrompt = `You are an expert software developer. Analyze the following git diff and generate a concise, meaningful commit message.
+    private cleanCommitMessage(message: string, style: CommitStyle): string {
+        let cleaned = message
+            .replace(/^["'`]|["'`]$/g, '') // Remove quotes/backticks
+            .replace(/^(commit|message):\s*/i, '') // Remove prefixes
+            .replace(/^git\s+commit\s+-m\s*/i, '') // Remove git command
+            .trim();
 
-Git diff:
-\`\`\`diff
-${diff}
-\`\`\`
-
-Requirements:`;
-
-        let styleInstructions = '';
-        
-        switch (commitStyle) {
-            case 'conventional':
-                styleInstructions = `
-- Use conventional commit format: type(scope): description
-- Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build
-- Keep description under 50 characters
-- Use imperative mood (e.g., "add", "fix", "update")
-- Don't end with a period
-- Example: "feat(auth): add JWT token validation"`;
-                break;
-            
+        // Handle different styles differently
+        switch (style) {
             case 'descriptive':
-                styleInstructions = `
-- Write a clear, descriptive commit message
-- Use imperative mood (e.g., "Add", "Fix", "Update")
-- Keep it under 72 characters
-- Focus on what the change accomplishes
-- Example: "Add user authentication with JWT tokens"`;
+                // For descriptive commits, preserve multi-line format
+                if (cleaned.includes('\n') && cleaned.includes('-')) {
+                    const lines = cleaned.split('\n');
+                    const summary = lines[0].trim();
+                    
+                    // Clean summary line
+                    const cleanSummary = summary
+                        .replace(/^\s*[-*]\s*/, '') // Remove leading bullet from summary
+                        .replace(/\.$/, ''); // Remove trailing period
+                    
+                    // Keep the rest of the message intact
+                    const rest = lines.slice(1).join('\n');
+                    return cleanSummary + '\n' + rest;
+                }
                 break;
-            
+                
+            case 'conventional':
+            case 'semantic':
+            case 'gitmoji':
+                // For these styles, typically single line
+                cleaned = cleaned.split('\n')[0];
+                break;
+                
             case 'concise':
-                styleInstructions = `
-- Write a very concise commit message
-- Maximum 40 characters
-- Use imperative mood
-- Focus on the main change
-- Example: "Fix login bug"`;
+                // Ultra-short, single line
+                cleaned = cleaned.split('\n')[0];
                 break;
         }
 
-        return basePrompt + styleInstructions + `
-
-Generate ONLY the commit message, nothing else. Do not include explanations, quotes, or additional text.`;
-    }
-
-    private cleanCommitMessage(message: string): string {
-        // Remove common unwanted formatting
-        let cleaned = message
-            .replace(/^["']|["']$/g, '') // Remove surrounding quotes
-            .replace(/^\s*-\s*/, '') // Remove leading dash
-            .replace(/^commit:\s*/i, '') // Remove "commit:" prefix
-            .replace(/^message:\s*/i, '') // Remove "message:" prefix
-            .trim();
-
-        // Take only the first line if multiple lines
-        cleaned = cleaned.split('\n')[0];
-
-        // Ensure it doesn't end with a period for conventional commits
-        if (cleaned.endsWith('.') && cleaned.length < 100) {
-            cleaned = cleaned.slice(0, -1);
+        // General cleanup for single-line commits
+        if (!cleaned.includes('\n')) {
+            cleaned = cleaned.replace(/^\s*[-*]\s*/, ''); // Remove leading bullets
+            
+            // Remove trailing period for short messages
+            if (cleaned.endsWith('.') && cleaned.length < 80) {
+                cleaned = cleaned.slice(0, -1);
+            }
         }
 
         return cleaned;
     }
 
-    // Test connection to Gemini API
+    // Get available commit styles from prompts service
+    getAvailableStyles(): CommitStyle[] {
+        return promptsService.getAvailableStyles();
+    }
+
+    // Reload prompts (useful for development/testing)
+    reloadPrompts(): void {
+        promptsService.reloadPrompts();
+    }
+
     async testConnection(apiKey: string): Promise<boolean> {
         try {
             this.initializeAI(apiKey);
-            const model = this.genAI!.getGenerativeModel({ model: 'gemini-pro' });
+            const model = this.genAI!.getGenerativeModel({ model: 'gemini-2.0-flash' });
             
-            const result = await model.generateContent('Hello, can you respond with just "OK"?');
+            const result = await model.generateContent('Respond with exactly: "CONNECTION_OK"');
             const response = await result.response;
             
-            return response.text().trim().toLowerCase().includes('ok');
+            return response.text().trim() === 'CONNECTION_OK';
         } catch (error) {
             return false;
         }
