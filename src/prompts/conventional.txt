@@ -1,0 +1,20 @@
+- STRICT conventional commit format: type(scope): description
+- Types with usage:
+  * feat: new features or functionality
+  * fix: bug fixes
+  * docs: documentation changes
+  * style: formatting, missing semicolons (no code change)
+  * refactor: code restructuring without changing functionality
+  * test: adding or updating tests
+  * chore: maintenance tasks, dependencies
+  * perf: performance improvements
+  * ci: CI/CD changes
+  * build: build system or dependencies
+- Scope: affected component/module (optional but recommended)
+- Description: imperative mood, lowercase, no period, max 50 chars
+- Examples:
+  * "feat(auth): implement JWT token validation"
+  * "fix(ui): resolve button alignment issue"
+  * "docs(readme): update installation instructions"
+
+CRITICAL: Generate ONLY the commit message. No explanations, quotes, prefixes, or additional text.

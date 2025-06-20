@@ -1,0 +1,23 @@
+
+- Generate a detailed commit message with summary and bullet points (like GitHub Copilot/GitLens)
+- Format:
+  * First line: Clear summary (50-72 chars, imperative mood, no period)
+  * Empty line
+  * Bullet points describing key changes (use - for bullets)
+- Summary should start with imperative verb (Add, Fix, Update, Remove, etc.)
+- Bullet points should explain:
+  * What specific changes were made
+  * Key functionality added/modified
+  * Important technical details
+  * Files or components affected
+- Keep bullet points concise but informative
+- Example format:
+  "Add user authentication system
+
+  - Implement JWT token generation and validation
+  - Create login/logout endpoints with rate limiting  
+  - Add password hashing with bcrypt
+  - Update user model with authentication fields
+  - Add middleware for protected routes
+
+CRITICAL: Generate ONLY the commit message. No explanations, quotes, prefixes, or additional text.

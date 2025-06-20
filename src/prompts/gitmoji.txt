@@ -1,0 +1,15 @@
+- Gitmoji format: :emoji: description
+- Common gitmojis:
+  * :sparkles: new features
+  * :bug: bug fixes
+  * :memo: documentation
+  * :lipstick: UI/styling
+  * :recycle: refactoring
+  * :white_check_mark: tests
+  * :wrench: configuration
+  * :zap: performance
+  * :green_heart: CI
+  * :package: dependencies
+- Example: ":sparkles: Add user authentication system"
+
+CRITICAL: Generate ONLY the commit message. No explanations, quotes, prefixes, or additional text.

@@ -1,0 +1,7 @@
+- Ultra-concise message capturing the essence
+- Maximum 40 characters
+- Imperative mood
+- Focus on the primary change
+- Examples: "Fix login bug", "Add dark mode", "Update deps"
+
+CRITICAL: Generate ONLY the commit message. No explanations, quotes, prefixes, or additional text.

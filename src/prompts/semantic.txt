@@ -1,0 +1,15 @@
+- Semantic commit format with emoji: emoji type(scope): description
+- Emoji types:
+  * ✨ feat: new features
+  * 🐛 fix: bug fixes
+  * 📚 docs: documentation
+  * 💄 style: formatting/styling
+  * ♻️ refactor: code refactoring
+  * 🧪 test: testing
+  * 🔧 chore: maintenance
+  * ⚡ perf: performance
+  * 👷 ci: CI/CD
+  * 📦 build: build/dependencies
+- Example: "✨ feat(auth): implement OAuth2 login"
+
+CRITICAL: Generate ONLY the commit message. No explanations, quotes, prefixes, or additional text.
