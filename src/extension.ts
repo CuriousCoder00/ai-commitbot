@@ -25,10 +25,31 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const configureApiKeyCommand = vscode.commands.registerCommand('aiAutoCommit.configureApiKey', async () => {
-        await configureApiKey();
+        await configureApiKey(geminiService);
     });
 
-    context.subscriptions.push(generateCommitCommand, configureApiKeyCommand, statusBarItem);
+    const openSettingsCommand = vscode.commands.registerCommand('aiAutoCommit.openSettings', async () => {
+        await vscode.commands.executeCommand('workbench.action.openSettings', 'aiAutoCommit');
+    });
+
+    const reloadPromptsCommand = vscode.commands.registerCommand('aiAutoCommit.reloadPrompts', async () => {
+        geminiService.reloadPrompts();
+        vscode.window.showInformationMessage('Prompts reloaded successfully!');
+    });
+
+    // Add test connection command (even though not in package.json, it's referenced in menus)
+    const testConnectionCommand = vscode.commands.registerCommand('aiAutoCommit.testConnection', async () => {
+        await testConnection(geminiService);
+    });
+
+    context.subscriptions.push(
+        generateCommitCommand,
+        configureApiKeyCommand,
+        openSettingsCommand,
+        reloadPromptsCommand,
+        testConnectionCommand,
+        statusBarItem
+    );
 }
 
 async function generateCommit(geminiService: GeminiService, diffAnalyzer: DiffAnalyzer) {
@@ -36,14 +57,14 @@ async function generateCommit(geminiService: GeminiService, diffAnalyzer: DiffAn
         // Check if Gemini API key is configured
         const config = vscode.workspace.getConfiguration('aiAutoCommit');
         const apiKey = config.get<string>('geminiApiKey');
-        
+
         if (!apiKey) {
             const result = await vscode.window.showWarningMessage(
                 'Gemini API key not configured. Configure now?',
                 'Configure', 'Cancel'
             );
             if (result === 'Configure') {
-                await configureApiKey();
+                await configureApiKey(geminiService);
                 return;
             }
             return;
@@ -63,7 +84,7 @@ async function generateCommit(geminiService: GeminiService, diffAnalyzer: DiffAn
         }
 
         const repo = git.repositories[0];
-        
+
         // Check for staged changes
         if (repo.state.indexChanges.length === 0) {
             vscode.window.showWarningMessage('No staged changes found. Stage some changes first.');
@@ -80,7 +101,7 @@ async function generateCommit(geminiService: GeminiService, diffAnalyzer: DiffAn
                 // Get diff of staged changes
                 progress.report({ increment: 20, message: 'Analyzing staged changes...' });
                 const diff = await diffAnalyzer.getStagedDiff(repo.rootUri.fsPath);
-                
+
                 if (!diff) {
                     vscode.window.showErrorMessage('Unable to get staged changes');
                     return;
@@ -89,7 +110,7 @@ async function generateCommit(geminiService: GeminiService, diffAnalyzer: DiffAn
                 // Generate commit message using Gemini
                 progress.report({ increment: 40, message: 'Generating commit message...' });
                 const commitMessage = await geminiService.generateCommitMessage(diff, config);
-                
+
                 if (!commitMessage) {
                     vscode.window.showErrorMessage('Failed to generate commit message');
                     return;
@@ -99,7 +120,7 @@ async function generateCommit(geminiService: GeminiService, diffAnalyzer: DiffAn
 
                 // Check if auto-commit is enabled
                 const autoCommit = config.get<boolean>('autoCommit', false);
-                
+
                 if (autoCommit) {
                     // Auto commit
                     await repo.commit(commitMessage);
@@ -111,7 +132,7 @@ async function generateCommit(geminiService: GeminiService, diffAnalyzer: DiffAn
                         `Generated commit message: "${commitMessage}"`,
                         'Commit Now', 'Edit Message', 'Cancel'
                     );
-                    
+
                     if (result === 'Commit Now') {
                         await repo.commit(commitMessage);
                         vscode.window.showInformationMessage('Successfully committed!');
@@ -132,17 +153,63 @@ async function generateCommit(geminiService: GeminiService, diffAnalyzer: DiffAn
     }
 }
 
-async function configureApiKey() {
+async function configureApiKey(geminiService: GeminiService) {
     const apiKey = await vscode.window.showInputBox({
         prompt: 'Enter your Gemini AI API key',
         password: true,
-        placeHolder: 'Your Gemini API key...'
+        placeHolder: 'Your Gemini API key...',
+        validateInput: (value) => {
+            if (!value || value.trim().length === 0) {
+                return 'API key cannot be empty';
+            }
+            if (value.length < 10) {
+                return 'API key seems too short';
+            }
+            return null;
+        }
     });
 
     if (apiKey) {
-        const config = vscode.workspace.getConfiguration('aiAutoCommit');
-        await config.update('geminiApiKey', apiKey, vscode.ConfigurationTarget.Global);
-        vscode.window.showInformationMessage('Gemini API key configured successfully!');
+        // Test the API key before saving
+        const isValid = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: 'Testing API connection...',
+            cancellable: false
+        }, async () => {
+            return await geminiService.testConnection(apiKey.trim());
+        });
+
+        if (isValid) {
+            const config = vscode.workspace.getConfiguration('aiAutoCommit');
+            await config.update('geminiApiKey', apiKey.trim(), vscode.ConfigurationTarget.Global);
+            vscode.window.showInformationMessage('Gemini API key configured and tested successfully!');
+        } else {
+            vscode.window.showErrorMessage('Invalid API key or connection failed. Please check your key and try again.');
+        }
+    }
+}
+
+async function testConnection(geminiService: GeminiService) {
+    const config = vscode.workspace.getConfiguration('aiAutoCommit');
+    const apiKey = config.get<string>('geminiApiKey');
+    
+    if (!apiKey) {
+        vscode.window.showWarningMessage('No API key configured. Please configure your Gemini API key first.');
+        return;
+    }
+
+    const isConnected = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Testing Gemini API connection...',
+        cancellable: false
+    }, async () => {
+        return await geminiService.testConnection(apiKey);
+    });
+
+    if (isConnected) {
+        vscode.window.showInformationMessage('✅ Connection successful! Gemini API is working correctly.');
+    } else {
+        vscode.window.showErrorMessage('❌ Connection failed. Please check your API key and internet connection.');
     }
 }
 
