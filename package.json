@@ -39,13 +39,27 @@
     "commands": [
       {
         "command": "aiAutoCommit.generateCommit",
-        "title": "🤖 Generate AI Commit",
-        "category": "AI Auto Commit"
+        "title": "🤖 Generate AI Commit Message",
+        "category": "AI Auto Commit",
+        "icon": "$(robot)"
       },
       {
         "command": "aiAutoCommit.configureApiKey",
-        "title": "Configure Gemini API Key",
-        "category": "AI Auto Commit"
+        "title": "🔑 Configure Gemini API Key",
+        "category": "AI Auto Commit",
+        "icon": "$(key)"
+      },
+      {
+        "command": "aiAutoCommit.openSettings",
+        "title": "⚙️ Open Settings",
+        "category": "AI Auto Commit",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "aiAutoCommit.reloadPrompts",
+        "title": "🔄 Reload Prompts",
+        "category": "AI Auto Commit",
+        "icon": "$(refresh)"
       }
     ],
     "configuration": {
@@ -54,23 +68,91 @@
         "aiAutoCommit.geminiApiKey": {
           "type": "string",
           "default": "",
-          "description": "Your Gemini AI API key"
+          "description": "Your Gemini AI API key (get it from Google AI Studio)",
+          "order": 1
         },
         "aiAutoCommit.commitStyle": {
           "type": "string",
-          "enum": ["conventional", "descriptive", "concise"],
+          "enum": [
+            "conventional",
+            "descriptive",
+            "concise",
+            "semantic",
+            "gitmoji"
+          ],
+          "enumDescriptions": [
+            "Conventional Commits format (feat: add new feature)",
+            "Detailed description with bullet points",
+            "Short and concise messages",
+            "Conventional with emojis (✨ feat: add feature)",
+            "Gitmoji format (✨ add new feature)"
+          ],
           "default": "conventional",
-          "description": "Commit message style preference"
+          "description": "Commit message style preference",
+          "order": 2
         },
         "aiAutoCommit.maxDiffSize": {
           "type": "number",
           "default": 5000,
-          "description": "Maximum diff size to send to AI (characters)"
+          "minimum": 1000,
+          "maximum": 20000,
+          "description": "Maximum diff size to send to AI (characters)",
+          "order": 3
         },
         "aiAutoCommit.autoCommit": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically commit after generating message (without confirmation)"
+          "description": "Automatically commit after generating message (without confirmation)",
+          "order": 4
+        },
+        "aiAutoCommit.customInstructions": {
+          "type": "string",
+          "default": "",
+          "description": "Additional custom instructions for commit message generation",
+          "order": 5
+        },
+        "aiAutoCommit.excludeFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "package-lock.json",
+            "yarn.lock",
+            "pnpm-lock.yaml",
+            "*.min.js",
+            "*.min.css",
+            "dist/**",
+            "build/**"
+          ],
+          "description": "File patterns to exclude from diff analysis",
+          "order": 6
+        },
+        "aiAutoCommit.includeContext": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include branch name and recent commits for better context",
+          "order": 7
+        },
+        "aiAutoCommit.temperature": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "AI creativity level (0.0 = consistent, 1.0 = creative)",
+          "order": 8
+        },
+        "aiAutoCommit.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show success/error notifications",
+          "order": 9
+        },
+        "aiAutoCommit.enableTelemetry": {
+          "type": "boolean",
+          "default": false,
+          "description": "Help improve the extension by sending anonymous usage data",
+          "order": 10
         }
       }
     },
@@ -78,18 +160,99 @@
       "scm/title": [
         {
           "command": "aiAutoCommit.generateCommit",
-          "when": "scmProvider == git",
-          "group": "navigation"
+          "when": "scmProvider == git && gitOpenRepositoryCount != 0",
+          "group": "navigation@1"
+        }
+      ],
+      "scm/resourceGroup/context": [
+        {
+          "command": "aiAutoCommit.generateCommit",
+          "when": "scmProvider == git && scmResourceGroup == workingTree",
+          "group": "1_modification"
         }
       ],
       "commandPalette": [
         {
           "command": "aiAutoCommit.generateCommit",
           "when": "scmProvider == git"
+        },
+        {
+          "command": "aiAutoCommit.configureApiKey"
+        },
+        {
+          "command": "aiAutoCommit.testConnection"
+        },
+        {
+          "command": "aiAutoCommit.openSettings"
+        },
+        {
+          "command": "aiAutoCommit.reloadPrompts"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "aiAutoCommit.generateCommit",
+          "when": "view == workbench.scm && scmProvider == git",
+          "group": "navigation"
         }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "aiAutoCommit.generateCommit",
+        "key": "ctrl+shift+g ctrl+shift+a",
+        "mac": "cmd+shift+g cmd+shift+a",
+        "when": "scmProvider == git"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "aiAutoCommit.setup",
+        "title": "Get Started with AI Auto Commit",
+        "description": "Learn how to set up and use AI-powered commit messages",
+        "steps": [
+          {
+            "id": "apiKey",
+            "title": "Configure API Key",
+            "description": "Set up your Gemini API key to start generating commit messages.\n[Configure API Key](command:aiAutoCommit.configureApiKey)",
+            "media": {
+              "markdown": "walkthrough/setup-api-key.md"
+            }
+          },
+          {
+            "id": "firstCommit",
+            "title": "Generate Your First Commit",
+            "description": "Try generating your first AI commit message.\n[Generate Commit](command:aiAutoCommit.generateCommit)",
+            "media": {
+              "markdown": "walkthrough/first-commit.md"
+            }
+          },
+          {
+            "id": "customizeStyle",
+            "title": "Customize Your Style",
+            "description": "Choose from different commit message styles.\n[Open Settings](command:aiAutoCommit.openSettings)",
+            "media": {
+              "markdown": "walkthrough/customize-style.md"
+            }
+          }
+        ]
+      }
+    ]
   },
+  "badges": [
+    {
+      "url": "https://img.shields.io/github/stars/CuriousCoder00/ai-commitbot",
+      "href": "https://github.com/CuriousCoder00/ai-commitbot",
+      "description": "GitHub Stars"
+    },
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/i/kjxcodez.ai-auto-commit",
+      "href": "https://marketplace.visualstudio.com/items?itemName=kjxcodez.ai-auto-commit",
+      "description": "Installs"
+    }
+  ],
+  "qna": "https://github.com/CuriousCoder00/ai-commitbot/discussions",
+  "extensionDependencies": [],
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
@@ -122,5 +285,8 @@
   "dependencies": {
     "simple-git": "^3.19.1",
     "@google/generative-ai": "^0.2.1"
+  },
+  "sponsor": {
+    "url": "https://github.com/sponsors/CuriousCoder00"
   }
 }
